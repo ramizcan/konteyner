@@ -187,5 +187,40 @@ def konteyner_konteyner_ekle():
     
     return render_template('konteyner_konteyner_ekle.html', cities=cities)
 
+@app.route('/konteyner/talepler')
+def konteyner_talepler():
+    if 'email' not in session:
+        return redirect(url_for('login'))
+    
+    # Talepleri getir
+    cursor.execute("""
+        SELECT t.id, cc.name as city_name, c.container_number, 
+               t.request_type, t.status, t.created_at, u.full_name
+        FROM container_requests t
+        JOIN containers c ON t.container_id = c.id
+        JOIN container_cities cc ON c.container_city_id = cc.id
+        JOIN users u ON t.user_id = u.id
+        ORDER BY t.created_at DESC
+    """)
+    talepler = cursor.fetchall()
+    
+    # Dolu ve boş konteynırları getir
+    cursor.execute("""
+        SELECT cc.name as city_name, c.container_number, 
+               c.capacity, c.current_occupancy,
+               CASE 
+                   WHEN c.current_occupancy >= c.capacity THEN 'Dolu'
+                   ELSE 'Boş'
+               END as status
+        FROM containers c
+        JOIN container_cities cc ON c.container_city_id = cc.id
+        ORDER BY cc.name, c.container_number
+    """)
+    konteynerler = cursor.fetchall()
+    
+    return render_template('konteyner_talepler.html', 
+                         talepler=talepler, 
+                         konteynerler=konteynerler)
+
 if __name__ == '__main__':
     app.run(debug=True)

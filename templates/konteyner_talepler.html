@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konteynır Talepleri</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/container.css') }}">
+</head>
+<body>
+    <div class="requests-container">
+        <!-- Sol Panel - Talepler -->
+        <div class="requests-panel">
+            <h2>Konteynır Talepleri</h2>
+            <div class="requests-list">
+                {% for talep in talepler %}
+                <div class="request-card">
+                    <div class="request-header">
+                        <span class="request-id">#{{ talep[0] }}</span>
+                        <span class="request-date">{{ talep[5].strftime('%d.%m.%Y %H:%M') }}</span>
+                    </div>
+                    <div class="request-content">
+                        <p><strong>Şehir:</strong> {{ talep[1] }}</p>
+                        <p><strong>Konteynır No:</strong> {{ talep[2] }}</p>
+                        <p><strong>Talep Eden:</strong> {{ talep[6] }}</p>
+                        <p><strong>Talep Tipi:</strong> {{ talep[3] }}</p>
+                        <p class="request-status {{ talep[4].lower() }}">{{ talep[4] }}</p>
+                    </div>
+                    <div class="request-actions">
+                        <button class="approve-btn">Onayla</button>
+                        <button class="reject-btn">Reddet</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Sağ Panel - Konteynır Durumları -->
+        <div class="containers-panel">
+            <h2>Konteynır Durumları</h2>
+            <div class="containers-list">
+                {% for konteyner in konteynerler %}
+                <div class="container-card {{ konteyner[4].lower() }}">
+                    <div class="container-header">
+                        <span class="city-name">{{ konteyner[0] }}</span>
+                        <span class="container-status">{{ konteyner[4] }}</span>
+                    </div>
+                    <div class="container-content">
+                        <p><strong>Konteynır No:</strong> {{ konteyner[1] }}</p>
+                        <p><strong>Kapasite:</strong> {{ konteyner[2] }}</p>
+                        <p><strong>Doluluk:</strong> {{ konteyner[3] }}</p>
+                    </div>
+                    <div class="container-progress">
+                        <div class="progress-bar" style="width: {{ (konteyner[3] / konteyner[2] * 100)|round }}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</body>
+</html> 
