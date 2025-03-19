@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konteynır Ekle</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/container.css') }}">
+</head>
+<body>
+    <div class="form-container">
+        <h2>Konteynır Ekle</h2>
+        <form method="POST">
+            <div class="form-group">
+                <label for="container_city_id">Şehir Seçin:</label>
+                <select id="container_city_id" name="container_city_id" required>
+                    <option value="">Şehir Seçin</option>
+                    {% for city in cities %}
+                    <option value="{{ city[0] }}">{{ city[1] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="container_number">Konteynır Numarası:</label>
+                <input type="text" id="container_number" name="container_number" required>
+            </div>
+            <div class="form-group">
+                <label for="capacity">Kapasite:</label>
+                <input type="number" id="capacity" name="capacity" required>
+            </div>
+            <button type="submit">Ekle</button>
+        </form>
+    </div>
+</body>
+</html> 

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konteynır Şehri Ekle</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/container.css') }}">
+</head>
+<body>
+    <div class="form-container">
+        <h2>Konteynır Şehri Ekle</h2>
+        <form method="POST">
+            <div class="form-group">
+                <label for="name">Şehir Adı:</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="location">Konum Açıklaması:</label>
+                <input type="text" id="location" name="location" required>
+            </div>
+            <div class="form-group">
+                <label for="latitude">Enlem:</label>
+                <input type="number" id="latitude" name="latitude" step="any" required>
+            </div>
+            <div class="form-group">
+                <label for="longitude">Boylam:</label>
+                <input type="number" id="longitude" name="longitude" step="any" required>
+            </div>
+            <div class="form-group">
+                <label for="total_capacity">Toplam Kapasite:</label>
+                <input type="number" id="total_capacity" name="total_capacity" required>
+            </div>
+            <button type="submit">Ekle</button>
+        </form>
+    </div>
+</body>
+</html> 

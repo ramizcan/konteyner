@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konteynır Ekle - Seçim</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/container.css') }}">
+    <style>
+        .selection-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 80vh;
+            gap: 20px;
+        }
+        .selection-box {
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .selection-box:hover {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="selection-container">
+        <div class="selection-box" onclick="window.location.href='{{ url_for('konteyner_sehir_ekle') }}'">
+            <h2>Konteynır Şehri Ekle</h2>
+            <p>Yeni bir konteynır şehri oluşturun</p>
+        </div>
+        <div class="selection-box" onclick="window.location.href='{{ url_for('konteyner_konteyner_ekle') }}'">
+            <h2>Konteynır Ekle</h2>
+            <p>Mevcut bir şehre konteynır ekleyin</p>
+        </div>
+    </div>
+</body>
+</html> 
