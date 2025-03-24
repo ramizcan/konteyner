@@ -109,10 +109,21 @@ def signup():
 
 @app.route('/dashboard')
 def dashboard():
-    if 'email' in session:
-        return render_template('dashboard.html', user={'name': session['name']})
-    return redirect(url_for('login'))
+    if 'email' not in session:
+        return redirect(url_for('login'))
 
+    # URL'den lat ve lng parametrelerini al
+    lat = request.args.get('lat', type=float)
+    lng = request.args.get('lng', type=float)
+
+    # Haritada gösterilecek konumu session'a kaydet
+    if lat is not None and lng is not None:
+        session['map_location'] = {'lat': lat, 'lng': lng}
+        session.modified = True  # Session değişikliklerini kaydet
+    else:
+        session.pop('map_location', None)
+
+    return render_template('dashboard.html', user={'name': session.get('name', 'Bilinmeyen Kullanıcı')})
 @app.route('/logout')
 def logout():
     session.clear()  # Tüm session verilerini temizle
@@ -211,7 +222,8 @@ def konteyner_talepler():
                CASE 
                    WHEN c.current_occupancy >= c.capacity THEN 'Dolu'
                    ELSE 'Boş'
-               END as status
+               END as status,cc.latitude, 
+       cc.longitude
         FROM containers c
         JOIN container_cities cc ON c.container_city_id = cc.id
         ORDER BY cc.name, c.container_number

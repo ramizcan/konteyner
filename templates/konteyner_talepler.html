@@ -39,23 +39,49 @@
             <h2>Konteynır Durumları</h2>
             <div class="containers-list">
                 {% for konteyner in konteynerler %}
-                <div class="container-card {{ konteyner[4].lower() }}">
+                <div class="container-card {{ konteyner[4].lower() }}" 
+                    data-lat="{{ konteyner[5] }}" 
+                    data-lng="{{ konteyner[6] }}">
+
                     <div class="container-header">
                         <span class="city-name">{{ konteyner[0] }}</span>
                         <span class="container-status">{{ konteyner[4] }}</span>
                     </div>
                     <div class="container-content">
-                        <p><strong>Konteynır No:</strong> {{ konteyner[1] }}</p>
+                        <p><strong>Konteyner No:</strong> {{ konteyner[1] }}</p>
                         <p><strong>Kapasite:</strong> {{ konteyner[2] }}</p>
                         <p><strong>Doluluk:</strong> {{ konteyner[3] }}</p>
                     </div>
-                    <div class="container-progress">
+                    <!-- <div class="container-progress">
                         <div class="progress-bar" style="width: {{ (konteyner[3] / konteyner[2] * 100)|round }}%"></div>
+                    </div> -->
+                        <!-- Görüntüle Butonu -->
+                    <div class="container-actions">
+                        <a href="{{ url_for('dashboard', lat=konteyner[5], lng=konteyner[6]) }}">
+                            <button class="view-on-map-btn">Görüntüle</button>
+                        </a>
                     </div>
                 </div>
                 {% endfor %}
             </div>
         </div>
     </div>
+    <script>
+        document.querySelectorAll('.view-on-map-btn').forEach(button => {
+            button.addEventListener('click', function () {
+                var lat = this.getAttribute('data-lat');
+                var lng = this.getAttribute('data-lng');
+    
+                if (lat !== "null" && lat !== "undefined" && lng !== "null" && lng !== "undefined" && !isNaN(lat) && !isNaN(lng)) {
+                    var marker = L.marker([lat, lng]).addTo(map)
+                        .bindPopup("Konteyner burada!").openPopup();
+                    map.setView([lat, lng], 12);
+                } else {
+                    alert("Bu konteyner için konum bilgisi yok.");
+                }
+
+            });
+        });
+    </script> 
 </body>
 </html> 

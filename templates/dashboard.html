@@ -1,23 +1,20 @@
+<!-- dashboard.html -->
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Yönetici Paneli</title>
-    <link rel="stylesheet" href="{{ url_for('static',  filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
-
-    <!-- Uygulama Başlığı -->
     <div class="header">
         Yönetici Ekranı
     </div>
 
-    <!-- Ana İçerik Konteyneri -->
     <div class="main-container">
-
         <!-- Sol Panel (Menü) -->
         <div class="sidebar">
             <div>
@@ -31,20 +28,18 @@
                 <h2>Hastalık</h2>
                 <h2>Acil Çağrı Geçmişi</h2>
             </div>
-                <div>
-                    <!-- Profil Bilgileri -->
+            <div>
                 <div class="profile">
                     <div class="profile-picture"></div>
                     <div class="profile-info">
-                        <p>{{ user.name }}</p> <!-- İsim ve soyisim buraya yazılacak -->
+                        <p>{{ user.name }}</p>
                     </div>
                 </div>
                 <div class="logout">
                     <a href="{{ url_for('logout') }}"><button>Çıkış Yap</button></a>
                 </div>
             </div>
-        </div> 
-        
+        </div>
 
         <!-- Orta Alan (Harita) -->
         <div class="content">
@@ -63,19 +58,28 @@
                 <p>{{ cagri.konum }} - {{ cagri.durum }}</p>
             {% endfor %}
         </div>
-
     </div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Harita Oluştur
-        var map = L.map('map').setView([40.1825, 29.0664], 10); // Bursa koordinatları ve zoom seviyesi
+        // Haritayı başlat
+        var map = L.map('map').setView([40.1825, 29.0664], 10);  // Varsayılan merkez
 
-        // OpenStreetMap Katmanı Ekle
+        // Harita katmanını ekle
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap Katkıda Bulunanlar'
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
+
+        // Session'dan konum bilgisini al
+        var mapLocation = JSON.parse('{{ session.get("map_location", "{}") | tojson | safe }}');
+
+        // Eğer konum bilgisi varsa haritada göster
+        if (mapLocation.lat && mapLocation.lng) {
+            map.setView([mapLocation.lat, mapLocation.lng], 12);  // Konuma odaklan
+            L.marker([mapLocation.lat, mapLocation.lng]).addTo(map)
+                .bindPopup("Konteyner burada!").openPopup();
+        }
     </script>
 </body>
 </html>
