@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import mysql.connector
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
@@ -14,8 +14,6 @@ db = mysql.connector.connect(
     database="konteynir"
 )
 
-cursor = db.cursor()
-
 @app.route('/')
 def home():
     if 'email' in session:
@@ -29,6 +27,7 @@ def login():
         password = request.form['password']
 
         # Veritabanında kullanıcıyı sorgula
+        cursor = db.cursor()
         cursor.execute("SELECT id, full_name, password FROM users WHERE email=%s", (email,))
         user = cursor.fetchone()
 
@@ -84,6 +83,7 @@ def signup():
         if error is None:
             try:
                 # Kullanıcı adı ve e-posta kontrolü
+                cursor = db.cursor()
                 cursor.execute("SELECT * FROM users WHERE username = %s OR email = %s", (username, email))
                 if cursor.fetchone():
                     error = "Kullanıcı adı veya e-posta zaten kullanımda."
@@ -124,6 +124,7 @@ def dashboard():
         session.pop('map_location', None)
 
     return render_template('dashboard.html', user={'name': session.get('name', 'Bilinmeyen Kullanıcı')})
+
 @app.route('/logout')
 def logout():
     session.clear()  # Tüm session verilerini temizle
@@ -148,6 +149,7 @@ def konteyner_sehir_ekle():
         total_capacity = request.form['total_capacity']
         
         try:
+            cursor = db.cursor()
             cursor.execute("""
                 INSERT INTO container_cities 
                 (name, location, latitude, longitude, total_capacity)
@@ -167,6 +169,7 @@ def konteyner_konteyner_ekle():
         return redirect(url_for('login'))
     
     # Mevcut şehirleri getir
+    cursor = db.cursor()
     cursor.execute("SELECT id, name FROM container_cities")
     cities = cursor.fetchall()
     
@@ -204,6 +207,7 @@ def konteyner_talepler():
         return redirect(url_for('login'))
     
     # Talepleri getir
+    cursor = db.cursor()
     cursor.execute("""
         SELECT t.id, cc.name as city_name, c.container_number, 
                t.request_type, t.status, t.created_at, u.full_name
@@ -233,6 +237,30 @@ def konteyner_talepler():
     return render_template('konteyner_talepler.html', 
                          talepler=talepler, 
                          konteynerler=konteynerler)
+
+@app.route('/delete-container', methods=['POST'])
+def delete_container():
+    try:
+        data = request.get_json()
+        container_id = data.get('container_id')
+        
+        cursor = db.cursor()  # Yeni bir cursor oluştur
+        
+        # Konteynırı sil
+        cursor.execute("""
+            DELETE FROM containers 
+            WHERE container_number = %s
+        """, (container_id,))
+        
+        db.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        print(f"Hata: {str(e)}")
+        return jsonify({'success': False})
+    finally:
+        cursor.close()  # finally bloğunda cursor'ı kapat
 
 if __name__ == '__main__':
     app.run(debug=True)

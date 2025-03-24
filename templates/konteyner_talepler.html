@@ -48,18 +48,19 @@
                         <span class="container-status">{{ konteyner[4] }}</span>
                     </div>
                     <div class="container-content">
-                        <p><strong>Konteyner No:</strong> {{ konteyner[1] }}</p>
+                        <p><strong>Konteynır No:</strong> {{ konteyner[1] }}</p>
                         <p><strong>Kapasite:</strong> {{ konteyner[2] }}</p>
                         <p><strong>Doluluk:</strong> {{ konteyner[3] }}</p>
                     </div>
-                    <!-- <div class="container-progress">
-                        <div class="progress-bar" style="width: {{ (konteyner[3] / konteyner[2] * 100)|round }}%"></div>
-                    </div> -->
+                    
                         <!-- Görüntüle Butonu -->
                     <div class="container-actions">
-                        <a href="{{ url_for('dashboard', lat=konteyner[5], lng=konteyner[6]) }}">
-                            <button class="view-on-map-btn">Görüntüle</button>
-                        </a>
+                        <button class="view-on-map-btn" data-lat="{{ konteyner[5] }}" data-lng="{{ konteyner[6] }}">
+                            Görüntüle
+                        </button>
+                        <button class="delete-container-btn" data-container-id="{{ konteyner[1] }}">
+                            Sil
+                        </button>
                     </div>
                 </div>
                 {% endfor %}
@@ -72,14 +73,43 @@
                 var lat = this.getAttribute('data-lat');
                 var lng = this.getAttribute('data-lng');
     
-                if (lat !== "null" && lat !== "undefined" && lng !== "null" && lng !== "undefined" && !isNaN(lat) && !isNaN(lng)) {
-                    var marker = L.marker([lat, lng]).addTo(map)
-                        .bindPopup("Konteyner burada!").openPopup();
-                    map.setView([lat, lng], 12);
+                if (lat && lng) {
+                    // Dashboard'a yönlendir
+                    window.location.href = `/dashboard?lat=${lat}&lng=${lng}`;
                 } else {
                     alert("Bu konteyner için konum bilgisi yok.");
                 }
+            });
+        });
 
+        document.querySelectorAll('.delete-container-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                if (confirm('Bu konteynırı silmek istediğinizden emin misiniz?')) {
+                    const containerId = this.getAttribute('data-container-id');
+                    
+                    fetch('/delete-container', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            container_id: containerId
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            this.closest('.container-card').remove();
+                            alert('Konteynır başarıyla silindi!');
+                        } else {
+                            alert('Silme işlemi başarısız oldu!');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Bir hata oluştu!');
+                    });
+                }
             });
         });
     </script> 

@@ -369,4 +369,49 @@ button:active {
     .requests-panel, .containers-panel {
         padding: 1rem;
     }
+}
+
+.container-actions {
+    display: flex;
+    gap: 10px;  /* butonlar arası boşluk */
+    margin-top: 10px;
+}
+
+.view-on-map-btn, .delete-container-btn {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.view-on-map-btn {
+    background-color: #4CAF50;  /* yeşil */
+    color: white;
+}
+
+.delete-container-btn {
+    background-color: #f44336;  /* kırmızı */
+    color: white;
+}
+
+.view-on-map-btn:hover {
+    background-color: #45a049;
+}
+
+.delete-container-btn:hover {
+    background-color: #da190b;
+}
+
+/* Butonları responsive yapmak için */
+@media screen and (max-width: 600px) {
+    .container-actions {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .view-on-map-btn, .delete-container-btn {
+        width: 100%;
+    }
 } 
