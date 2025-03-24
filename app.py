@@ -112,18 +112,37 @@ def dashboard():
     if 'email' not in session:
         return redirect(url_for('login'))
 
-    # URL'den lat ve lng parametrelerini al
-    lat = request.args.get('lat', type=float)
-    lng = request.args.get('lng', type=float)
-
-    # Haritada gösterilecek konumu session'a kaydet
-    if lat is not None and lng is not None:
-        session['map_location'] = {'lat': lat, 'lng': lng}
-        session.modified = True  # Session değişikliklerini kaydet
-    else:
-        session.pop('map_location', None)
-
-    return render_template('dashboard.html', user={'name': session.get('name', 'Bilinmeyen Kullanıcı')})
+    cursor = db.cursor()
+    
+    # Aktif acil çağrıları getir
+    cursor.execute("""
+        SELECT id, worker_name, emergency_type, description, 
+               latitude, longitude, timestamp, is_resolved
+        FROM emergency_signals
+        WHERE is_active = TRUE
+        ORDER BY timestamp DESC
+    """)
+    acil_cagrilar = cursor.fetchall()
+    
+    # İşlemdeki (çözülmemiş) çağrıları getir
+    cursor.execute("""
+        SELECT es.id, es.worker_name, es.emergency_type, 
+               es.description, es.latitude, es.longitude, 
+               es.timestamp, u.full_name as handler_name
+        FROM emergency_signals es
+        LEFT JOIN users u ON es.resolved_by = u.id
+        WHERE es.is_active = TRUE 
+        AND es.is_resolved = FALSE
+        ORDER BY es.timestamp DESC
+    """)
+    islemdeki_cagrilar = cursor.fetchall()
+    
+    cursor.close()
+    
+    return render_template('dashboard.html', 
+                         user={'name': session.get('name', 'Bilinmeyen Kullanıcı')},
+                         acil_cagrilar=acil_cagrilar,
+                         islemdeki_cagrilar=islemdeki_cagrilar)
 
 @app.route('/logout')
 def logout():
@@ -262,5 +281,81 @@ def delete_container():
     finally:
         cursor.close()  # finally bloğunda cursor'ı kapat
 
+# Acil çağrıyı çözüldü olarak işaretle
+@app.route('/resolve-emergency', methods=['POST'])
+def resolve_emergency():
+    if 'email' not in session:
+        return jsonify({'success': False, 'error': 'Oturum gerekli'})
+        
+    try:
+        data = request.get_json()
+        emergency_id = data.get('emergency_id')
+        resolution_notes = data.get('notes', '')
+        
+        cursor = db.cursor()
+        cursor.execute("""
+            UPDATE emergency_signals 
+            SET is_resolved = TRUE,
+                resolved_at = CURRENT_TIMESTAMP,
+                resolved_by = (SELECT id FROM users WHERE email = %s),
+                resolution_notes = %s
+            WHERE id = %s
+        """, (session['email'], resolution_notes, emergency_id))
+        
+        db.commit()
+        cursor.close()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        print(e)
+        return jsonify({'success': False, 'error': str(e)})
+    
+@app.route('/emergency-history')
+def emergency_history():
+    if 'email' not in session:
+        return redirect(url_for('login'))
+    
+    cursor = db.cursor()
+    
+    # Filtre parametrelerini al
+    emergency_type = request.args.get('type')
+    date_start = request.args.get('start')
+    date_end = request.args.get('end')
+    
+    # Base query
+    query = """
+        SELECT es.id, es.worker_name, es.emergency_type, 
+               es.description, es.latitude, es.longitude, 
+               es.timestamp, u.full_name as resolver_name,
+               es.resolution_notes
+        FROM emergency_signals es
+        LEFT JOIN users u ON es.resolved_by = u.id
+        WHERE 1=1
+    """
+    params = []
+    
+    # Filtreleri ekle
+    if emergency_type:
+        query += " AND es.emergency_type = %s"
+        params.append(emergency_type)
+    
+    if date_start:
+        query += " AND DATE(es.timestamp) >= %s"
+        params.append(date_start)
+    
+    if date_end:
+        query += " AND DATE(es.timestamp) <= %s"
+        params.append(date_end)
+    
+    # Tarihe göre sırala
+    query += " ORDER BY es.timestamp DESC"
+    
+    cursor.execute(query, params)
+    gecmis_cagrilar = cursor.fetchall()
+    cursor.close()
+    
+    return render_template('emergency_history.html', gecmis_cagrilar=gecmis_cagrilar)
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True)   

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acil Çağrı Geçmişi</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/emergency_history.css') }}">
+</head>
+<body>
+    <div class="history-container">
+        <a href="{{ url_for('dashboard') }}" class="back-button">← Geri Dön</a>
+        <h1>Acil Çağrı Geçmişi</h1>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label for="type">Acil Durum Tipi:</label>
+                <select id="type" onchange="filterHistory()">
+                    <option value="">Tümü</option>
+                    <option value="Yangın">Yangın</option>
+                    <option value="Deprem">Deprem</option>
+                    <option value="Sel">Sel</option>
+                    <option value="Diğer">Diğer</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="date-start">Başlangıç:</label>
+                <input type="date" id="date-start" onchange="filterHistory()">
+            </div>
+            <div class="filter-group">
+                <label for="date-end">Bitiş:</label>
+                <input type="date" id="date-end" onchange="filterHistory()">
+            </div>
+        </div>
+
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th>Tarih</th>
+                    <th>Acil Durum Tipi</th>
+                    <th>İşçi</th>
+                    <th>Açıklama</th>
+                    <th>Konum</th>
+                    <th>Çözen Kişi</th>
+                    <th>Çözüm Notu</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cagri in gecmis_cagrilar %}
+                <tr>
+                    <td>{{ cagri[6].strftime('%d.%m.%Y %H:%M') }}</td>
+                    <td><span class="emergency-badge {{ cagri[2].lower() }}">{{ cagri[2] }}</span></td>
+                    <td>{{ cagri[1] }}</td>
+                    <td>{{ cagri[3] }}</td>
+                    <td>
+                        <a href="javascript:void(0)" 
+                           onclick="window.location.href='/dashboard?lat={{ cagri[4] }}&lng={{ cagri[5] }}'">
+                            Haritada Göster
+                        </a>
+                    </td>
+                    <td>{{ cagri[7] }}</td>
+                    <td>{{ cagri[8] or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function filterHistory() {
+            const type = document.getElementById('type').value;
+            const dateStart = document.getElementById('date-start').value;
+            const dateEnd = document.getElementById('date-end').value;
+
+            let url = '/emergency-history?';
+            if (type) url += `type=${type}&`;
+            if (dateStart) url += `start=${dateStart}&`;
+            if (dateEnd) url += `end=${dateEnd}`;
+
+            window.location.href = url;
+        }
+    </script>
+</body>
+</html> 

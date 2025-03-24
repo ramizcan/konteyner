@@ -44,12 +44,14 @@ body {
 }
 
 .sidebar li {
-    padding: 8px;
+    padding: 0; /* Önceki padding'i kaldır çünkü a etiketine verdik */
+    margin: 2px 0;
     cursor: pointer;
 }
 
-.sidebar li:hover {
+.sidebar li:hover a {
     background-color: #555;
+    padding-left: 15px; /* Hover'da sola kayma efekti */
 }
 
 /* Profil Bilgileri */
@@ -124,4 +126,87 @@ body {
     display: flex;
     flex-direction: column;
     overflow-y: auto; /* Kaydırma çubuğu ekle */
+}
+.emergency-list, .processing-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+.emergency-card {
+    background: white;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.emergency-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.emergency-type {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.emergency-type.deprem { background: #ff4444; color: white; }
+.emergency-type.yangın { background: #ff8800; color: white; }
+.emergency-type.sel { background: #0099cc; color: white; }
+.emergency-type.diğer { background: #666666; color: white; }
+
+.emergency-time {
+    color: #666;
+    font-size: 12px;
+}
+
+.emergency-content {
+    margin-bottom: 8px;
+}
+
+.emergency-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.emergency-actions button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.show-location-btn {
+    background: #4CAF50;
+    color: white;
+}
+
+.resolve-btn {
+    background: #2196F3;
+    color: white;
+}
+
+.emergency-marker {
+    font-size: 24px;
+    text-align: center;
+}
+
+/* Sol Panel link stilleri */
+.sidebar a {
+    color: white;
+    text-decoration: none;
+    display: block;
+    width: 100%;
+    padding: 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+/* Aktif link için stil */
+.sidebar a.active {
+    background-color: #4CAF50;
 }

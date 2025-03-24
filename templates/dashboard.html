@@ -27,6 +27,9 @@
                 </ul>
                 <h2>Hastalık</h2>
                 <h2>Acil Çağrı Geçmişi</h2>
+                <ul>
+                    <li><a href="{{ url_for('emergency_history') }}">Geçmiş Kayıtlar</a></li>
+                </ul>
             </div>
             <div>
                 <div class="profile">
@@ -49,14 +52,55 @@
         <!-- Sağ Panel -->
         <div class="right-panel">
             <h2>Acil Çağrılar</h2>
-            {% for cagri in acil_cagrilar %}
-                <p>{{ cagri.konum }} - {{ cagri.durum }}</p>
-            {% endfor %}
+            <div class="emergency-list">
+                {% for cagri in acil_cagrilar %}
+                <div class="emergency-card" 
+                     data-lat="{{ cagri[4] }}" 
+                     data-lng="{{ cagri[5] }}"
+                     data-id="{{ cagri[0] }}">
+                    <div class="emergency-header">
+                        <span class="emergency-type {{ cagri[2].lower() }}">{{ cagri[2] }}</span>
+                        <span class="emergency-time">{{ cagri[6].strftime('%H:%M') }}</span>
+                    </div>
+                    <div class="emergency-content">
+                        <p><strong>İşçi:</strong> {{ cagri[1] }}</p>
+                        {% if cagri[3] %}
+                        <p><strong>Açıklama:</strong> {{ cagri[3] }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="emergency-actions">
+                        <button class="show-location-btn" onclick="showEmergencyLocation('{{ cagri[4] }}', '{{ cagri[5] }}', '{{ cagri[2] }}')">
+                            Konumu Göster
+                        </button>
+                        <button class="resolve-btn" onclick="resolveEmergency('{{ cagri[0] }}')">
+                            Çözüldü
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
 
-            <h2>İşlemdeki Çağrılar</h2>
-            {% for cagri in islemdeki_cagrilar %}
-                <p>{{ cagri.konum }} - {{ cagri.durum }}</p>
-            {% endfor %}
+            <h2>Çözülen Çağrılar</h2>
+            <div class="processing-list">
+                {% for cagri in islemdeki_cagrilar %}
+                <div class="emergency-card processing">
+                    <div class="emergency-header">
+                        <span class="emergency-type {{ cagri[2].lower() }}">{{ cagri[2] }}</span>
+                        <span class="emergency-time">{{ cagri[6].strftime('%d.%m %H:%M') }}</span>
+                    </div>
+                    <div class="emergency-content">
+                        <p><strong>İşçi:</strong> {{ cagri[1] }}</p>
+                        {% if cagri[3] %}
+                        <p><strong>Açıklama:</strong> {{ cagri[3] }}</p>
+                        {% endif %}
+                        <p><strong>Çözen:</strong> {{ cagri[7] }}</p>
+                        {% if cagri[8] %}
+                        <p><strong>Çözüm Notu:</strong> {{ cagri[8] }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
         </div>
     </div>
 
@@ -65,21 +109,90 @@
     <script>
         // Haritayı başlat
         var map = L.map('map').setView([40.1825, 29.0664], 10);  // Varsayılan merkez
-
+    
         // Harita katmanını ekle
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
-
-        // Session'dan konum bilgisini al
-        var mapLocation = JSON.parse('{{ session.get("map_location", "{}") | tojson | safe }}');
-
-        // Eğer konum bilgisi varsa haritada göster
-        if (mapLocation.lat && mapLocation.lng) {
-            map.setView([mapLocation.lat, mapLocation.lng], 12);  // Konuma odaklan
-            L.marker([mapLocation.lat, mapLocation.lng]).addTo(map)
+    
+        // URL'den koordinatları al
+        const urlParams = new URLSearchParams(window.location.search);
+        const lat = parseFloat(urlParams.get('lat'));
+        const lng = parseFloat(urlParams.get('lng'));
+    
+        // Eğer URL'de koordinat varsa
+        if (lat && lng) {
+            // Varsa önceki marker'ı temizle
+            if (window.currentMarker) {
+                map.removeLayer(window.currentMarker);
+            }
+    
+            // Yeni marker ekle
+            window.currentMarker = L.marker([lat, lng]).addTo(map)
                 .bindPopup("Konteyner burada!").openPopup();
+    
+            // Haritayı konuma odakla
+            map.setView([lat, lng], 15);
         }
+        let currentEmergencyMarker = null;
+
+        function showEmergencyLocation(lat, lng, type) {
+            // Eğer önceki marker varsa kaldır
+            if (currentEmergencyMarker) {
+                map.removeLayer(currentEmergencyMarker);
+            }
+
+            // Acil durum tipine göre icon seç
+            let icon = '🚨';
+            if (type.toLowerCase() === 'yangın') icon = '🔥';
+            else if (type.toLowerCase() === 'deprem') icon = '⚠️';
+            else if (type.toLowerCase() === 'sel') icon = '💧';
+
+            // Yeni marker ekle
+            currentEmergencyMarker = L.marker([lat, lng], {
+                icon: L.divIcon({
+                    className: 'emergency-marker',
+                    html: icon
+                })
+            }).addTo(map);
+
+            // Haritayı konuma odakla
+            map.setView([lat, lng], 15);
+        }
+
+        function resolveEmergency(emergencyId) {
+            if (confirm('Bu acil çağrıyı çözüldü olarak işaretlemek istediğinize emin misiniz?')) {
+                const notes = prompt('Çözüm notlarını giriniz (opsiyonel):');
+                
+                fetch('/resolve-emergency', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        emergency_id: emergencyId,
+                        notes: notes
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('İşlem başarısız: ' + (data.error || 'Bilinmeyen hata'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Bir hata oluştu!');
+                });
+            }
+        }
+
+        // Her 30 saniyede bir acil çağrıları güncelle
+        setInterval(() => {
+            location.reload();
+        }, 30000);
     </script>
 </body>
 </html>
