@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import mysql.connector
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
+import json
 
 app = Flask(__name__)
 app.secret_key = 'gizli_anahtar'  # Güvenlik için
@@ -19,6 +20,12 @@ def home():
     if 'email' in session:
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
+
+@app.route('/api/test', methods=['GET'])
+def test_api():
+    print("Flutter'dan istek alındı!")
+    return "İstek başarıyla alındı!", 200
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -93,7 +100,7 @@ def signup():
                     
                     # Kullanıcıyı veritabanına ekle
                     cursor.execute(
-                        "INSERT INTO users (username, password, full_name, email, phone, user_type) VALUES (%s, %s, %s, %s, %s, %s)",
+                        "INSERT INTO users (username, password, full_name, email, phone_number, user_type) VALUES (%s, %s, %s, %s, %s, %s)",
                         (username, hashed_password, full_name, email, phone, user_type)
                     )
                     db.commit()
@@ -113,8 +120,6 @@ def dashboard():
         return redirect(url_for('login'))
 
     cursor = db.cursor()
-    
-    # Aktif acil çağrıları getir
     cursor.execute("""
         SELECT id, worker_name, emergency_type, description, 
                latitude, longitude, timestamp, is_resolved
@@ -123,26 +128,19 @@ def dashboard():
         ORDER BY timestamp DESC
     """)
     acil_cagrilar = cursor.fetchall()
-    
-    # İşlemdeki (çözülmemiş) çağrıları getir
-    cursor.execute("""
-        SELECT es.id, es.worker_name, es.emergency_type, 
-               es.description, es.latitude, es.longitude, 
-               es.timestamp, u.full_name as handler_name
-        FROM emergency_signals es
-        LEFT JOIN users u ON es.resolved_by = u.id
-        WHERE es.is_active = TRUE 
-        AND es.is_resolved = FALSE
-        ORDER BY es.timestamp DESC
-    """)
-    islemdeki_cagrilar = cursor.fetchall()
-    
     cursor.close()
-    
+
+     # JSON formatına çevir
+    acil_cagrilar_json = [
+        {"lat": row[4], "lng": row[5], "type": row[2], "name": row[1]}
+        for row in acil_cagrilar
+    ]
+
     return render_template('dashboard.html', 
-                         user={'name': session.get('name', 'Bilinmeyen Kullanıcı')},
-                         acil_cagrilar=acil_cagrilar,
-                         islemdeki_cagrilar=islemdeki_cagrilar)
+                            user={'name': session.get('name', 'Bilinmeyen Kullanıcı')},
+                            acil_cagrilar=acil_cagrilar,
+                            acil_cagrilar_json=acil_cagrilar_json)
+
 
 @app.route('/logout')
 def logout():
@@ -356,6 +354,33 @@ def emergency_history():
     cursor.close()
     
     return render_template('emergency_history.html', gecmis_cagrilar=gecmis_cagrilar)
+
+@app.route('/api/covid-points')
+def covid_points():
+    if 'email' not in session:
+        return jsonify([])  # Eğer oturum yoksa boş liste dön
+
+    try:
+        cursor = db.cursor()
+        cursor.execute("""
+            SELECT latitude, longitude
+            FROM workers
+            WHERE had_covid = TRUE
+        """)
+        rows = cursor.fetchall()
+        cursor.close()
+
+        heatmap_data = []
+        for row in rows:
+            # Leaflet-heatmap [lat, lng, yoğunluk] ister
+            heatmap_data.append([row[0], row[1], 0.5])  # 0.5 = yoğunluk (standart koyduk)
+
+        return jsonify(heatmap_data)
+
+    except Exception as e:
+        print("COVID verisi çekilirken hata:", e)
+        return jsonify([])
+
 
 if __name__ == '__main__':
     app.run(debug=True)   

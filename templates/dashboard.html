@@ -1,12 +1,9 @@
-<!-- dashboard.html -->
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yönetici Paneli</title>
+    <title>Yönetim Paneli</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
@@ -15,7 +12,7 @@
     </div>
 
     <div class="main-container">
-        <!-- Sol Panel (Menü) -->
+        <!-- Sol Panel -->
         <div class="sidebar">
             <div>
                 <h2>Konteynırlar</h2>
@@ -25,12 +22,18 @@
                     <li>Konteynır Düzenle</li>
                     <li><a href="{{ url_for('konteyner_talepler') }}">Konteynır Talepleri</a></li>
                 </ul>
+
                 <h2>Hastalık</h2>
+                <ul>
+                    <li><a href="#" onclick="showCovidHeatmap()">COVID Yoğunluğu</a></li>
+                </ul>
+
                 <h2>Acil Çağrı Geçmişi</h2>
                 <ul>
                     <li><a href="{{ url_for('emergency_history') }}">Geçmiş Kayıtlar</a></li>
                 </ul>
             </div>
+
             <div>
                 <div class="profile">
                     <div class="profile-picture"></div>
@@ -44,7 +47,7 @@
             </div>
         </div>
 
-        <!-- Orta Alan (Harita) -->
+        <!-- Harita Alanı -->
         <div class="content">
             <div id="map"></div>
         </div>
@@ -79,76 +82,57 @@
                 </div>
                 {% endfor %}
             </div>
-
-            <h2>Çözülen Çağrılar</h2>
-            <div class="processing-list">
-                {% for cagri in islemdeki_cagrilar %}
-                <div class="emergency-card processing">
-                    <div class="emergency-header">
-                        <span class="emergency-type {{ cagri[2].lower() }}">{{ cagri[2] }}</span>
-                        <span class="emergency-time">{{ cagri[6].strftime('%d.%m %H:%M') }}</span>
-                    </div>
-                    <div class="emergency-content">
-                        <p><strong>İşçi:</strong> {{ cagri[1] }}</p>
-                        {% if cagri[3] %}
-                        <p><strong>Açıklama:</strong> {{ cagri[3] }}</p>
-                        {% endif %}
-                        <p><strong>Çözen:</strong> {{ cagri[7] }}</p>
-                        {% if cagri[8] %}
-                        <p><strong>Çözüm Notu:</strong> {{ cagri[8] }}</p>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
         </div>
     </div>
 
-    <!-- Leaflet JS -->
+    <!-- Scriptler -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
     <script>
-        // Haritayı başlat
-        var map = L.map('map').setView([40.1825, 29.0664], 10);  // Varsayılan merkez
-    
-        // Harita katmanını ekle
+        var emergencyData = {{ acil_cagrilar_json | tojson | safe }};
+
+        var map = L.map('map').setView([40.1825, 29.0664], 10);
+
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
-    
-        // URL'den koordinatları al
+
+        // Konteyner tıklamasını kontrol et
         const urlParams = new URLSearchParams(window.location.search);
         const lat = parseFloat(urlParams.get('lat'));
         const lng = parseFloat(urlParams.get('lng'));
-    
-        // Eğer URL'de koordinat varsa
+
         if (lat && lng) {
-            // Varsa önceki marker'ı temizle
             if (window.currentMarker) {
                 map.removeLayer(window.currentMarker);
             }
-    
-            // Yeni marker ekle
             window.currentMarker = L.marker([lat, lng]).addTo(map)
                 .bindPopup("Konteyner burada!").openPopup();
-    
-            // Haritayı konuma odakla
             map.setView([lat, lng], 15);
         }
+
         let currentEmergencyMarker = null;
+        let emergencyMarkers = [];
+        let covidLayer = null;
+        let isCovidMode = false;
+
+        emergencyData.forEach(cagri => {
+            var marker = L.marker([cagri.lat, cagri.lng]).addTo(map)
+                .bindPopup("<b>" + cagri.type + "</b><br>" + cagri.name);
+            emergencyMarkers.push(marker);
+        });
 
         function showEmergencyLocation(lat, lng, type) {
-            // Eğer önceki marker varsa kaldır
             if (currentEmergencyMarker) {
                 map.removeLayer(currentEmergencyMarker);
             }
 
-            // Acil durum tipine göre icon seç
             let icon = '🚨';
             if (type.toLowerCase() === 'yangın') icon = '🔥';
             else if (type.toLowerCase() === 'deprem') icon = '⚠️';
             else if (type.toLowerCase() === 'sel') icon = '💧';
 
-            // Yeni marker ekle
             currentEmergencyMarker = L.marker([lat, lng], {
                 icon: L.divIcon({
                     className: 'emergency-marker',
@@ -156,14 +140,13 @@
                 })
             }).addTo(map);
 
-            // Haritayı konuma odakla
             map.setView([lat, lng], 15);
         }
 
         function resolveEmergency(emergencyId) {
             if (confirm('Bu acil çağrıyı çözüldü olarak işaretlemek istediğinize emin misiniz?')) {
                 const notes = prompt('Çözüm notlarını giriniz (opsiyonel):');
-                
+
                 fetch('/resolve-emergency', {
                     method: 'POST',
                     headers: {
@@ -189,10 +172,57 @@
             }
         }
 
-        // Her 30 saniyede bir acil çağrıları güncelle
         setInterval(() => {
             location.reload();
         }, 30000);
+
+        function showCovidHeatmap() {
+            if (!isCovidMode) {
+                // 1. Adım: Acil çağrı markerlarını kaldır
+                emergencyMarkers.forEach(marker => map.removeLayer(marker));
+
+                // 2. Adım: COVID veri noktalarını çek
+                fetch('/api/covid-points')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (covidLayer) {
+                            map.removeLayer(covidLayer);
+                        }
+
+                        // 3. Adım: Heatmap oluştur
+                        covidLayer = L.heatLayer(data, {
+                            radius: 40,
+                            blur: 25,
+                            gradient: {
+                                0.4: 'purple',
+                                0.6: 'lime',
+                                0.8: 'orange',
+                                1.0: 'red'
+                            }
+                        }).addTo(map);
+
+
+                        map.setView([40.1825, 29.0664], 10); // Haritayı Bursa merkezine döndür
+                        isCovidMode = true; // Artık COVID modundayız
+                    })
+                    .catch(error => {
+                        console.error('COVID verisi alınamadı:', error);
+                        alert('COVID haritası yüklenemedi.');
+                    });
+            } else {
+                // 4. Adım: COVID modundan çıkıyorsa
+                if (covidLayer) {
+                    map.removeLayer(covidLayer);
+                }
+
+                // 5. Adım: Acil çağrı markerlarını geri getir
+                emergencyMarkers.forEach(marker => marker.addTo(map));
+                map.setView([40.1825, 29.0664], 10);
+                isCovidMode = false;
+            }
+        }
+
+
     </script>
 </body>
 </html>

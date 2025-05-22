@@ -125,10 +125,11 @@ body {
     padding: 15px;
     display: flex;
     flex-direction: column;
-    overflow-y: auto; /* Kaydırma çubuğu ekle */
+    overflow-y: 100%; /* Kaydırma çubuğu ekle */
 }
-.emergency-list, .processing-list {
-    max-height: 300px;
+/* Acil Çağrı Listesi - Sağ paneli tam kaplasın */
+.emergency-list {
+    flex: 1;
     overflow-y: auto;
     margin-bottom: 20px;
 }

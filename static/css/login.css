@@ -40,7 +40,10 @@ body {
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 5px;
+    margin: 0; /* Tüm marginleri sıfırla */
+    box-sizing: border-box; /* padding+border = width dahil */
 }
+
 
 /* Buton */
 button {
